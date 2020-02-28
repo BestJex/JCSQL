@@ -1,25 +1,23 @@
 package pers.jc.sql;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class DBA {
+class Access {
 	private static String url;
 	private static String username;
 	private static String password;
 	protected static ConcurrentLinkedQueue<Connection> pool = new ConcurrentLinkedQueue<>();
-	private static int amount = 0;
+	private static volatile int activeCount = 0;
 	private static int minIdle = 5;
 	private static int maxActive = 20;
 	private static long clearInterval = 3000;
 	
-	public static void init() throws IOException, ClassNotFoundException {
+	protected static void init() throws Exception {
 		Properties properties = new Properties();
-		properties.load(DBA.class.getResourceAsStream("/sql.properties"));
+		properties.load(Access.class.getResourceAsStream("/sql.properties"));
 		
 		url = "jdbc:mysql://"+properties.getProperty("url") 
 			+ "?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8&useSSL=false";
@@ -29,7 +27,7 @@ public class DBA {
 		String minIdleValue = properties.getProperty("minIdle");
 		String maxActiveValue = properties.getProperty("maxActive");
 		String clearIntervalValue = properties.getProperty("clearInterval");
-		
+
 		if (minIdleValue != null) {
 			minIdle = Integer.valueOf(minIdleValue);
 		}
@@ -40,19 +38,19 @@ public class DBA {
 			clearInterval = Integer.valueOf(clearIntervalValue);
 		}
 		
-		Class.forName("com.mysql.cj.jdbc.Driver");
+		Class.forName(properties.getProperty("driver"));
 		
 		keepMinIdle();
 		
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while(true){
+				while (true) {
 					try {
 						Thread.sleep(clearInterval);
 						closeConnection(pool.poll());
 						keepMinIdle();
-					} catch (Exception e){
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 				}
@@ -61,8 +59,8 @@ public class DBA {
 	}
 		
 	private static void keepMinIdle() {
-		while (pool.size() < minIdle) {
-			Connection connection = newConnection();
+		while (pool.size() < minIdle && activeCount < maxActive) {
+			Connection connection = createConnection();
 			if (connection != null) {
 				pool.add(connection);
 			} else {
@@ -71,56 +69,64 @@ public class DBA {
 		}
 	}
 	
-	private static Connection newConnection() {
-		if(readyNewConnection()){
+	protected static Connection getConnection() {
+		Connection connection = pool.poll();
+		if (connection != null) {
+			return connection;
+		}
+		connection = createConnection();
+		if (connection != null) {
+			return connection;
+		}
+		synchronized ("waiting for a connection") {
+			while((connection = pool.poll()) == null){}
+			return connection;
+		}
+	}
+	
+	private static Connection createConnection() {
+		if(addActiveCount()){
 			try {
 				return DriverManager.getConnection(url, username, password);
-			} catch (SQLException e) {
+			} catch (Exception e) {
+				subActiveCount();
 				e.printStackTrace();
-				getAmount(-1);
 				return null;
 			}
 		}
 		return null;
 	}
 	
-	protected static Connection getConnection() {
-		Connection connection = pool.poll();
-		if (connection != null) {
-			return connection;
-		}
-		connection = newConnection();
-		if (connection != null) {
-			return connection;
-		}
-		synchronized (DBA.class) {
-			while((connection = pool.poll()) == null){}
-			return connection;
-		}
-	}
-	
-	private static synchronized void closeConnection(Connection connection) {
+	public static void closeConnection(Connection connection) {
 		if (connection != null) {
 			try {
 				connection.close();
-				getAmount(-1);
-			} catch (SQLException e){
+			} catch (Exception e) {
 				e.printStackTrace();
+			} finally {
+				subActiveCount();
 			}
 		}
 	}
 	
-	private static synchronized boolean readyNewConnection() {
-		if (getAmount(0) < maxActive) {
-			getAmount(1);
-			return true;
+	private static boolean addActiveCount() {
+		synchronized ("add or sub count") {
+			if (activeCount < maxActive) {
+				activeCount++;
+				return true;
+			}
+			return false;
 		}
-		return false;
 	}
 	
-	private static synchronized int getAmount(int variety) {
-		amount += variety;
-		return amount;
+	private static boolean subActiveCount() {
+		synchronized ("add or sub count") {
+			if (activeCount > 0) {
+				activeCount--;
+				return true;
+			}
+			return false;
+		}
 	}
 }
 

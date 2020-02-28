@@ -7,8 +7,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Target(value=ElementType.TYPE)
+@Target(value=ElementType.FIELD)
 @Retention(value=RetentionPolicy.RUNTIME)
-public @interface Table {
-	String value() default "";
+public @interface GeneratedValue {
+	
 }

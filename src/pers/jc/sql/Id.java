@@ -10,7 +10,5 @@ import java.lang.annotation.Target;
 @Target(value=ElementType.FIELD)
 @Retention(value=RetentionPolicy.RUNTIME)
 public @interface Id {
-	String name() default "";
-	boolean autoIncrement() default false;
-	boolean autoUpdate() default false;
+	String value() default "";
 }
