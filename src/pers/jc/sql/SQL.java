@@ -22,13 +22,49 @@ public class SQL extends AbstractSQL<SQL> {
 		return this.getSelf();
 	}
 	
+	public SQL INSERT_INTO(Class<?> modelClass) {
+		try {
+			TableInfo tableInfo = Handle.getTableInfo(modelClass);
+			INSERT_INTO(tableInfo.tableName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this.getSelf();
+	}
+	
+	public SQL UPDATE(Class<?> modelClass) {
+		try {
+			TableInfo tableInfo = Handle.getTableInfo(modelClass);
+			UPDATE(tableInfo.tableName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this.getSelf();
+	}
+	
+	public SQL DELETE_FROM(Class<?> modelClass) {
+		try {
+			TableInfo tableInfo = Handle.getTableInfo(modelClass);
+			DELETE_FROM(tableInfo.tableName);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return this.getSelf();
+	}
+	
+	public SQL LIMIT(int index, int count) {
+		super.LIMIT(PARAM(index));
+		super.LIMIT(PARAM(count));
+		return this.getSelf();
+	}
+	
 	public String PARAM(Object parameter) {
 		Class<?> type = parameter.getClass();
 		if (type == String.class
 				|| type == Date.class
 				|| type == Time.class
 				|| type == Timestamp.class) {
-			return "'" + parameter + "'";
+			return "'" + String.valueOf(parameter).replace("\\", "\\\\").replace("'", "\\'") + "'";
 		}
 		if (type == Boolean.class || type == boolean.class) {
 			if (parameter.equals(true)) {
@@ -248,6 +284,11 @@ abstract class AbstractSQL<T> {
         this.sql().orderBy.addAll(Arrays.asList(columns));
         return this.getSelf();
     }
+    
+    public T LIMIT(String limit) {
+    	this.sql().limit.add(limit);
+    	return this.getSelf();
+    }
 
     private AbstractSQL.SQLStatement sql() {
         return this.sql;
@@ -281,6 +322,7 @@ abstract class AbstractSQL<T> {
         List<String> lastList = new ArrayList<String>();
         List<String> columns = new ArrayList<String>();
         List<String> values = new ArrayList<String>();
+        List<String> limit = new ArrayList<String>();
         boolean distinct;
 
         private void sqlClause(AbstractSQL.SafeAppendable builder, String keyword, List<String> parts, String open, String close, String conjunction) {
@@ -323,6 +365,7 @@ abstract class AbstractSQL<T> {
             this.sqlClause(builder, "GROUP BY", this.groupBy, "", "", ", ");
             this.sqlClause(builder, "HAVING", this.having, "(", ")", " AND ");
             this.sqlClause(builder, "ORDER BY", this.orderBy, "", "", ", ");
+            this.sqlClause(builder, "LIMIT", this.limit, "", "", ", ");
             return builder.toString();
         }
 

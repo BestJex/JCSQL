@@ -20,7 +20,12 @@ public class CURD {
 	
 	public static <T> T selectOne(Class<T> modelClass, SQL sql) {
 		sql.SELECT_FROM(modelClass);
-		return Handle.select(modelClass, sql.toString()).get(0);
+		ArrayList<T> list = Handle.select(modelClass, sql.toString());
+		if (list.size() > 0) {
+			return list.get(0);
+		} else {
+			return null;
+		}
 	}
 	
 	public static <T> ArrayList<T> selectAll(Class<T> modelClass) {
@@ -34,9 +39,17 @@ public class CURD {
 		return Handle.insert(Statement.NO_GENERATED_KEYS, models);
 	}
 	
+	public static int insert(SQL sql) {
+		return Handle.excuteUpdate(sql.toString(), Statement.NO_GENERATED_KEYS);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public static <T> int insertAndGenerateKeys(T... models) {
 		return Handle.insert(Statement.RETURN_GENERATED_KEYS, models);
+	}
+	
+	public static int insertAndReturnKey(SQL sql) {
+		return Handle.excuteUpdate(sql.toString(), Statement.RETURN_GENERATED_KEYS);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -44,8 +57,16 @@ public class CURD {
 		return Handle.update(models);
 	}
 	
+	public static int update(SQL sql) {
+		return Handle.excuteUpdate(sql.toString(), Statement.NO_GENERATED_KEYS);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public static <T> int delete(T... models) {
 		return Handle.delete(models);
+	}
+	
+	public static int delete(SQL sql) {
+		return Handle.excuteUpdate(sql.toString(), Statement.NO_GENERATED_KEYS);
 	}
 }

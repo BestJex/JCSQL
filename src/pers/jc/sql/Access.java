@@ -42,17 +42,14 @@ class Access {
 		
 		keepMinIdle();
 		
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				while (true) {
-					try {
-						Thread.sleep(clearInterval);
-						closeConnection(pool.poll());
-						keepMinIdle();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+		new Thread(() -> {
+			while (true) {
+				try {
+					Thread.sleep(clearInterval);
+					closeConnection(pool.poll());
+					keepMinIdle();
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}).start();
