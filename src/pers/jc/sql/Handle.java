@@ -284,17 +284,17 @@ class Handle {
 		}
 	}
 	
-	private static void setPreparedStatementValue(PreparedStatement preparedStatement, int parameterIndex, Object value) throws Exception { 
+	public static void setPreparedStatementValue(PreparedStatement preparedStatement, int parameterIndex, Object value) throws Exception { 
 		Method method = preparedStatement.getClass().getMethod("set" + getTypeName(value.getClass()), new Class<?>[]{int.class, getType(value.getClass())});
 		method.invoke(preparedStatement, new Object[]{parameterIndex, value});
 	}
 	
-	private static Object getResultSetValue(ResultSet resultSet, String columnLabel, Class<?> type) throws Exception {
+	public static Object getResultSetValue(ResultSet resultSet, String columnLabel, Class<?> type) throws Exception {
 		Method method = resultSet.getClass().getMethod("get" + getTypeName(type), new Class<?>[]{String.class});
 		return method.invoke(resultSet, new Object[]{columnLabel});
 	}
 	
-	private static boolean isSameClass(Object[] models) {
+	public static boolean isSameClass(Object[] models) {
 		if (models.length >= 1) {
 			for (int i = 1; i < models.length; i++) {
 				if (!models[i].getClass().equals(models[i-1])) {
