@@ -69,4 +69,18 @@ public class CURD {
 	public static int delete(SQL sql) {
 		return Handle.excuteUpdate(sql.toString(), Statement.NO_GENERATED_KEYS);
 	}
+	
+	public static int count(Class<?> modelClass, String columnName) {
+		String tableName = null;
+		try {
+			tableName = Handle.getTableInfo(modelClass).tableName;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return Handle.count(tableName, columnName);
+	}
+	
+	public static int count(String tableName, String columnName) {
+		return Handle.count(tableName, columnName);
+	}
 }
